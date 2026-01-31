@@ -15,10 +15,7 @@ let package = Package(
     targets: [
         .target(
             name: "AwesomeAnimation",
-            dependencies: ["Shared"],
-            resources: [
-                .process("Resources")
-            ]
+            dependencies: ["Shared"]
         ),
         .target(name: "Shared", publicHeadersPath: "."),
         .testTarget(

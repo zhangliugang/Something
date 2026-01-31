@@ -30,9 +30,10 @@ extension GridDissolveDirection: @retroactive Identifiable, @retroactive CustomS
 }
 
 struct ContentView: View {
+    @State private var isPresented = true
     @State private var showingAnimation = false
-    @State private var selectedDirection: GridDissolveDirection = .centerOut
-    @State private var gridSize: Int = 80
+    @State private var selectedDirection: GridDissolveDirection = .leftToRight
+    @State private var gridSize: Int = 30
     @State private var animationDuration: Double = 3
 
     var body: some View {
@@ -42,30 +43,38 @@ struct ContentView: View {
                     // Preview Section
                     GroupBox("Preview") {
                         VStack {
-                            MetalGridViewRepresentable(
-                                isShowing: $showingAnimation,
-                                direction: selectedDirection,
-                                gridSize: gridSize,
-                                duration: animationDuration
-                            ) {
-//                                Image(uiImage: UIImage(contentsOfFile: Bundle.main.path(forResource: "img", ofType: "avif")!)!)
-//                                    .scaledToFill()
+                            ZStack {
+                                if isPresented {
+                                    MetalGridViewRepresentable(
+                                        isShowing: $showingAnimation,
+                                        direction: selectedDirection,
+                                        gridSize: gridSize,
+                                        duration: animationDuration
+                                    ) {
+                                        Image(uiImage: UIImage(contentsOfFile: Bundle.main.path(forResource: "img", ofType: "avif")!)!)
+                                            .resizable()
+                                            .scaledToFill()
+                                    } onDismissed: {
+                                        showingAnimation = false
+                                        isPresented = false
+                                    }
+                                    .frame(height: 200)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                }
                             }
                             .frame(height: 200)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-
                             HStack {
-                                Button("Show Animation") {
+                                Button("Reset") {
+                                    isPresented = true
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(isPresented)
+
+                                Button("Dismiss") {
                                     showingAnimation = true
                                 }
                                 .buttonStyle(.bordered)
                                 .disabled(showingAnimation)
-
-                                Button("Dismiss") {
-                                    showingAnimation = false
-                                }
-                                .buttonStyle(.bordered)
-                                .disabled(!showingAnimation)
                             }
                         }
                         .padding()
@@ -135,6 +144,7 @@ struct ContentView: View {
                 .padding()
             }
             .navigationTitle("Grid Dissolve Animation")
+
         }
     }
 }
@@ -142,11 +152,7 @@ struct ContentView: View {
 // MARK: - Metal Grid View Representable
 
 import SwiftUI
-#if os(iOS)
 import UIKit
-#elseif os(macOS)
-import AppKit
-#endif
 
 struct MetalGridViewRepresentable<Content: View>: UIViewRepresentable {
     @Binding var isShowing: Bool
@@ -154,19 +160,22 @@ struct MetalGridViewRepresentable<Content: View>: UIViewRepresentable {
     let gridSize: Int
     let duration: Double
     @ViewBuilder let content: () -> Content
+    let onDismissed: () -> Void
 
     init(
         isShowing: Binding<Bool>,
         direction: GridDissolveDirection,
         gridSize: Int,
         duration: Double,
-        @ViewBuilder content: @escaping () -> Content
+        @ViewBuilder content: @escaping () -> Content,
+        onDismissed: @escaping () -> Void
     ) {
         self._isShowing = isShowing
         self.direction = direction
         self.gridSize = gridSize
         self.duration = duration
         self.content = content
+        self.onDismissed = onDismissed
     }
 
     func makeUIView(context: Context) -> MetalGridView {
@@ -174,13 +183,12 @@ struct MetalGridViewRepresentable<Content: View>: UIViewRepresentable {
         view.cellPixelSize = Double(gridSize)
         view.dissolveDirection = direction
         view.animationDuration = duration
-        view.backgroundColor = .clear
 
         // Add subview from content
         let hostingController = UIHostingController(rootView: content())
         hostingController.view.translatesAutoresizingMaskIntoConstraints = false
         hostingController.view.backgroundColor = .clear
-        view.addSubview(hostingController.view)
+        view.contentView.addSubview(hostingController.view)
 
         NSLayoutConstraint.activate([
             hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
@@ -193,15 +201,14 @@ struct MetalGridViewRepresentable<Content: View>: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: MetalGridView, context: Context) {
-//        uiView.gridColumns = gridSize
-//        uiView.gridRows = gridSize
+        uiView.cellPixelSize = Double(gridSize)
         uiView.dissolveDirection = direction
         uiView.animationDuration = duration
 
         if isShowing {
-            uiView.alpha = 1
-        } else {
-            uiView.dismiss(animated: true)
+            uiView.dismiss(animated: true) {
+                onDismissed()
+            }
         }
     }
 }
@@ -212,55 +219,18 @@ extension MetalGridViewRepresentable {
         isShowing: Binding<Bool>,
         direction: GridDissolveDirection,
         gridSize: Int,
-        duration: Double
+        duration: Double,
+        onDismissed: @escaping () -> Void
     ) where Content == EmptyView {
         self._isShowing = isShowing
         self.direction = direction
         self.gridSize = gridSize
         self.duration = duration
         self.content = { EmptyView() }
+        self.onDismissed = onDismissed
     }
 }
 
 #Preview {
     ContentView()
-}
-
-// MARK: - Example with Subviews
-
-struct MetalGridViewWithSubviewsExample: View {
-    @State private var showingAnimation = false
-
-    var body: some View {
-        MetalGridViewRepresentable(
-            isShowing: $showingAnimation,
-            direction: .centerOut,
-            gridSize: 10,
-            duration: 1.0
-        ) {
-            VStack {
-                Text("Hello, World!")
-                    .font(.title)
-                    .foregroundColor(.white)
-                Image(systemName: "star.fill")
-                    .font(.largeTitle)
-                    .foregroundColor(.yellow)
-            }
-        }
-        .frame(height: 200)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(
-            Button("Dismiss") {
-                showingAnimation = false
-            }
-            .buttonStyle(.borderedProminent)
-            .padding(),
-            alignment: .bottom
-        )
-        .padding()
-    }
-}
-
-#Preview("With Subviews") {
-    MetalGridViewWithSubviewsExample()
 }

@@ -47,6 +47,8 @@ public final class MetalGridView: UIView {
     private var metalTexture: MTLTexture?
     private var displayLink: CADisplayLink?
 
+    public let contentView = UIView()
+
     /// Cell size in pixels (width, height)
     public var cellPixelSize = 80.0
 
@@ -93,35 +95,17 @@ public final class MetalGridView: UIView {
         ml.framebufferOnly = false  // Allow transparent pixels
         ml.frame = bounds
         ml.contentsScale = UIScreen.main.scale
-        ml.zPosition = .greatestFiniteMagnitude
         ml.isOpaque = false  // Allow transparent background
-        self.layer.addSublayer(ml)
         metalLayer = ml
-    }
 
-    public override func layoutSubviews() {
-        super.layoutSubviews()
-        updateMetalLayerSize()
-        if !isAnimating {
-            DispatchQueue.main.async { [weak self] in
-                self?.updateTextureAndRender()
-            }
-        }
-    }
-
-    public override func didMoveToWindow() {
-        super.didMoveToWindow()
-        updateMetalLayerSize()
-        if window != nil {
-            DispatchQueue.main.async { [weak self] in
-                self?.updateTextureAndRender()
-            }
-        }
-    }
-
-    private func updateTextureAndRender() {
-        metalTexture = captureViewAsTexture()
-        renderFrame()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(contentView)
+        NSLayoutConstraint.activate([
+            contentView.topAnchor.constraint(equalTo: self.topAnchor),
+            contentView.leadingAnchor.constraint(equalTo: self.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: self.trailingAnchor),
+            contentView.bottomAnchor.constraint(equalTo: self.bottomAnchor)
+        ])
     }
 
     private func updateMetalLayerSize() {
@@ -184,11 +168,11 @@ public final class MetalGridView: UIView {
 
     private func captureViewAsTexture() -> MTLTexture? {
         guard let device = metalDevice else { return nil }
-
-        // Load test image from bundle
-        let img = UIImage(contentsOfFile: Bundle.module.path(forResource: "img", ofType: "avif")!)!
-        let tex = try? MTKTextureLoader(device: device).newTexture(cgImage: img.cgImage!)
-        return tex
+        let img = UIGraphicsImageRenderer(bounds: bounds).image { contex in
+            contentView.layer.render(in: contex.cgContext)
+        }
+        guard let cgImage = img.cgImage else { return nil}
+        return try? MTKTextureLoader(device: device).newTexture(cgImage: cgImage)
     }
 
     // MARK: - Animation
@@ -221,15 +205,18 @@ public final class MetalGridView: UIView {
     }
 
     private func startAnimation() {
+        guard let ml = metalLayer else {
+            return
+        }
+        updateMetalLayerSize()
+        layer.addSublayer(ml)
+        contentView.isHidden = true
+
         startTime = CACurrentMediaTime()
         animationRandomSeed = Float.random(in: 0...1)
         displayLink = CADisplayLink(target: self, selector: #selector(updateAnimation))
         displayLink?.preferredFramesPerSecond = 60
         displayLink?.add(to: .main, forMode: .common)
-    }
-
-    private func renderFrame() {
-        renderAnimationFrame(elapsed: 0)
     }
 
     @objc private func updateAnimation() {
@@ -296,6 +283,7 @@ public final class MetalGridView: UIView {
         isAnimating = false
         completionHandler?()
         completionHandler = nil
-//        backgroundColor = .systemRed
+        metalLayer?.removeFromSuperlayer()
+        contentView.isHidden = false
     }
 }
