@@ -107,7 +107,8 @@ fragment float4 fragmentShader(VertexOut in [[stage_in]],
                                 texture2d<float> inputTexture [[texture(0)]],
                                 constant Uniforms &u [[buffer(0)]]) {
     constexpr sampler s(address::clamp_to_edge, filter::linear);
-    float2 uv = in.texCoord;
+    // Flip Y coordinate to fix texture orientation
+    float2 uv = float2(in.texCoord.x, 1.0 - in.texCoord.y);
 
     float texW = float(inputTexture.get_width());
     float texH = float(inputTexture.get_height());
