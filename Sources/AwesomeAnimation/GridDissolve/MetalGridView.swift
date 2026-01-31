@@ -168,10 +168,11 @@ public final class MetalGridView: UIView {
 
     private func captureViewAsTexture() -> MTLTexture? {
         guard let device = metalDevice else { return nil }
-        let img = UIGraphicsImageRenderer(bounds: bounds).image { contex in
-            contentView.layer.render(in: contex.cgContext)
+
+        let img = UIGraphicsImageRenderer(bounds: bounds).image { context in
+            contentView.layer.render(in: context.cgContext)
         }
-        guard let cgImage = img.cgImage else { return nil}
+        guard let cgImage = img.cgImage else { return nil }
         return try? MTKTextureLoader(device: device).newTexture(cgImage: cgImage)
     }
 

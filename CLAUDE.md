@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A **Swift Package Manager library** providing Metal-based grid dissolve animations for iOS. The view captures its content as a texture, divides it into a configurable grid, and animates cells with scaling and fade effects.
+This is a **Swift Package Manager library** providing animations for iOS 14+ and macOS 14+. Currently includes:
+- **Metal-based Grid Dissolve** - GPU-accelerated image dissolve with 11 direction options
+- **Digital Clock** - SwiftUI rolling digit animation for displaying current time
 
 ## Build & Test Commands
 
@@ -27,85 +29,119 @@ open Example/Example.xcodeproj
 ### Shared (`Sources/Shared/`)
 
 - **Shared.h** - C header with `Uniforms` struct shared between Swift and Metal shaders
-- Defines data types for GPU uniform buffer
 
-### Core Library (`Sources/AwesomeAnimation/`) - Depends on `Shared`
+### Metal Animation (Grid Dissolve)
 
-- **MetalGridView.swift** - Main UIKit `UIView` subclass that:
-  - Sets up Metal device, command queue, and render pipeline
-  - Captures view content as a Metal texture using `UIGraphicsImageRenderer`
-  - Manages animation state via `CADisplayLink`
-  - Passes uniforms (time, grid size, direction, tint) to the shader
+- **Sources/AwesomeAnimation/MetalGridView.swift** - Main UIView subclass with Metal rendering
+- **Sources/AwesomeAnimation/GridDissolve.metal** - Vertex and fragment shaders
 
-- **GridDissolve.metal** - GPU shaders:
-  - `vertexShader` - Renders a full-screen triangle strip quad
-  - `fragmentShader` - Samples texture, applies per-cell scaling centered on each cell, and alpha fade based on animation progress
+### SwiftUI Animation (Digital Clock)
 
-- **Resources/img.avif** - Test image resource bundled with the library
+- **Sources/AwesomeAnimation/DigitalClockView.swift** - Rolling digit clock view
 
 ### Example App (`Example/`)
 
 - **ExampleApp.swift** - SwiftUI app entry point
-- **ContentView.swift** - Demo UI with `MetalGridViewRepresentable` (UIViewRepresentable wrapper) for SwiftUI integration, plus configuration controls
+- **ContentView.swift** - Demo UI with navigable list of animation examples
 
-## Key Components
+## Components
 
-### `MetalGridView` Public API
+### MetalGridView
 
 ```swift
-// Cell size in pixels
-var cellPixelSize: Double = 80.0
+public class MetalGridView: UIView {
+    // Cell size in pixels (default: 30)
+    public var cellPixelSize: Double = 30
 
-// Animation direction
-var dissolveDirection: GridDissolveDirection = .leftToRight
+    // Total animation duration in seconds (default: 3)
+    public var animationDuration: Double = 3
 
-// Animation settings
-var animationDuration: TimeInterval = 3.0
-var cellDuration: TimeInterval = 0.5
+    // Per-cell animation duration in seconds (default: 0.1)
+    public var cellDuration: Double = 0.1
 
-// Control
-func dismiss(animated: Bool, completion: (() -> Void)?)
+    // Animation direction (default: .leftToRight)
+    public var dissolveDirection: GridDissolveDirection = .leftToRight
+
+    // Dismiss animation with completion handler
+    public func dismiss(animated: Bool, completion: (() -> Void)? = nil)
+}
 ```
 
-### Animation Directions
+### GridDissolveDirection
 
-| Case | Description |
-|------|-------------|
+| Value | Description |
+|-------|-------------|
 | `.leftToRight` | Left to right |
 | `.rightToLeft` | Right to left |
 | `.topToBottom` | Top to bottom |
 | `.bottomToTop` | Bottom to top |
-| `.topLeftToBottomRight` | Diagonal: top-left to bottom-right |
-| `.topRightToBottomLeft` | Diagonal: top-right to bottom-left |
-| `.bottomLeftToTopRight` | Diagonal: bottom-left to top-right |
-| `.bottomRightToTopLeft` | Diagonal: bottom-right to top-left |
-| `.centerOut` | Center to edges |
-| `.edgeIn` | Edges to center |
+| `.topLeftToBottomRight` | Top-left to bottom-right diagonal |
+| `.topRightToBottomLeft` | Top-right to bottom-left diagonal |
+| `.bottomLeftToTopRight` | Bottom-left to top-right diagonal |
+| `.bottomRightToTopLeft` | Bottom-right to top-left diagonal |
+| `.centerOut` | From center outward |
+| `.edgeIn` | From edges inward |
 | `.random` | Random order |
+
+### DigitalClockView
+
+```swift
+public struct DigitalClockView: View {
+    // Font for displaying time digits (default: .system(size: 60, weight: .bold, design: .monospaced))
+    public var font: Font
+
+    // Color of the time digits (default: .primary)
+    public var foregroundColor: Color
+
+    // Background color of the clock (default: .clear)
+    public var backgroundColor: Color
+
+    // Whether to show background padding (default: false)
+    public var showBackground: Bool
+
+    // Separator color between time components (default: .primary.opacity(0.5))
+    public var separatorColor: Color
+
+    // Height of each digit column (default: 80)
+    public var digitColumnHeight: CGFloat
+}
+```
 
 ### Uniforms Structure (Swift ↔ Metal)
 
-Defined in `Sources/Shared/Shared.h`, must stay in sync between Swift and Metal:
-- `time: Float` - Elapsed animation time in **seconds**
+Defined in `Sources/Shared/Shared.h`:
+- `time: Float` - Elapsed animation time in seconds
 - `gridSize: SIMD2<Float>` - Cell size in pixels (width, height)
 - `duration: Float` - Total animation duration in seconds
 - `cellDuration: Float` - Per-cell animation duration in seconds
 - `direction: Int32` - Animation direction (0-10, see table above)
 - `randomSeed: Float` - Seed for random ordering
 
-### Animation Logic
+## Animation Logic
 
-- **Cell start time** = calculated based on direction within `[0, duration - cellDuration]`
-- **Cell end time** = `startTime + cellDuration`
-- **Cell progress** = `(time - startTime) / cellDuration` (0.0 to 1.0)
-- Cells scale down from center and become transparent when animation completes
-- Direction affects the order in which cells start animating
+### Grid Dissolve Timing
+
+Each cell animates independently based on its position and direction:
+
+```metal
+// Maximum start time ensures last cell finishes at end of duration
+float maxStartTime = u.duration - u.cellDuration;
+
+// Start time based on cell position (0 to maxStartTime)
+float startTime = calculateStartTime(u.direction, col, row, ...);
+
+// Cell animation progress (0 to 1)
+float progress = (u.time - startTime) / u.cellDuration;
+
+// Scale from 1.0 to 0, alpha from 1 to 0
+float scale = 1.0 - progress;
+float alpha = 1.0 - progress;
+```
 
 ## Platform Support
 
 - **iOS 14+** (configured in Package.swift)
-- **macOS** is not currently configured in Package.swift despite mentions elsewhere
 
 ## Dependencies
 
-None. Uses Metal, MetalKit, UIKit, and SwiftUI only.
+None. Uses Metal, MetalKit, SwiftUI, and UIKit/AppKit only.

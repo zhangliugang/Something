@@ -1,5 +1,5 @@
 #include <metal_stdlib>
-#include "../Shared/Shared.h"
+#include "../../Shared/Shared.h"
 using namespace metal;
 
 struct VertexOut {
