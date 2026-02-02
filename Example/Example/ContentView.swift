@@ -24,6 +24,13 @@ let animationExamples: [AnimationExample] = [
         category: ExampleCategory.swiftUI.rawValue
     ) {
         AnyView(DigitalClockExampleView())
+    },
+    AnimationExample(
+        title: "Letter Flow",
+        description: "Draggable letter reordering with spring animations",
+        category: ExampleCategory.swiftUI.rawValue
+    ) {
+        AnyView(LetterFlowExampleView())
     }
 ]
 

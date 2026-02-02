@@ -4,7 +4,9 @@
       "Bash(swift build)",
       "Bash(xcrun swift:*)",
       "Bash(swift:*)",
-      "Bash(xcodebuild:*)"
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(open:*)"
     ]
   }
 }
