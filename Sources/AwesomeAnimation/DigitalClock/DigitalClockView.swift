@@ -1,5 +1,34 @@
 import SwiftUI
 
+// MARK: - Environment Key for Animation Type
+
+private struct ClockAnimationTypeKey: EnvironmentKey {
+    static let defaultValue: DigitalClockAnimationType = .rolling
+}
+
+extension EnvironmentValues {
+    var clockAnimationType: DigitalClockAnimationType {
+        get { self[ClockAnimationTypeKey.self] }
+        set { self[ClockAnimationTypeKey.self] = newValue }
+    }
+}
+
+// MARK: - View Modifier for Animation Type
+
+extension View {
+    public func digitalClockAnimationType(_ type: DigitalClockAnimationType) -> some View {
+        self.environment(\.clockAnimationType, type)
+    }
+}
+
+/// Animation type for digit transitions
+public enum DigitalClockAnimationType: String, CaseIterable, Identifiable, Sendable {
+    case rolling = "Rolling"
+    case flip = "Flip"
+
+    public var id: String { rawValue }
+}
+
 /// A digital clock view that displays hours, minutes, and seconds with rolling animations
 public struct DigitalClockView: View {
     @State private var currentTime = Date()
@@ -11,6 +40,7 @@ public struct DigitalClockView: View {
     @State private var previousSeconds: Int = 0
 
     @Environment(\.font) var font: Font?
+    @Environment(\.clockAnimationType) var animationType
 
     /// Background color of the clock
     public var backgroundColor: Color = .clear
@@ -34,11 +64,9 @@ public struct DigitalClockView: View {
     public var body: some View {
         HStack(alignment: .center, spacing: 0) {
             // Hours
-            RollingDigitColumn(
+            digitColumn(
                 value: hours,
-                previousValue: previousHours,
-                digitCount: 2,
-                digitColumnHeight: digitColumnHeight
+                previousValue: previousHours
             )
 
             Text(":")
@@ -48,11 +76,9 @@ public struct DigitalClockView: View {
                 .frame(height: digitColumnHeight, alignment: .center)
 
             // Minutes
-            RollingDigitColumn(
+            digitColumn(
                 value: minutes,
-                previousValue: previousMinutes,
-                digitCount: 2,
-                digitColumnHeight: digitColumnHeight
+                previousValue: previousMinutes
             )
 
             Text(":")
@@ -62,11 +88,9 @@ public struct DigitalClockView: View {
                 .frame(height: digitColumnHeight, alignment: .center)
 
             // Seconds
-            RollingDigitColumn(
+            digitColumn(
                 value: seconds,
-                previousValue: previousSeconds,
-                digitCount: 2,
-                digitColumnHeight: digitColumnHeight
+                previousValue: previousSeconds
             )
         }
         .padding(showBackground ? 20 : 0)
@@ -77,6 +101,26 @@ public struct DigitalClockView: View {
         }
         .onReceive(Timer.publish(every: 1, on: .main, in: .common).autoconnect()) { _ in
             updateTime()
+        }
+    }
+
+    @ViewBuilder
+    private func digitColumn(value: Int, previousValue: Int) -> some View {
+        switch animationType {
+        case .rolling:
+            RollingDigitColumn(
+                value: value,
+                previousValue: previousValue,
+                digitCount: 2,
+                digitColumnHeight: digitColumnHeight
+            )
+        case .flip:
+            FlipDigitColumn(
+                value: value,
+                previousValue: previousValue,
+                digitCount: 2,
+                digitColumnHeight: digitColumnHeight
+            )
         }
     }
 
@@ -107,6 +151,8 @@ public struct DigitalClockView: View {
     }
 }
 
+// MARK: - Rolling Digit Column
+
 /// A single digit column that animates rolling changes
 struct RollingDigitColumn: View {
     let value: Int
@@ -128,9 +174,6 @@ struct RollingDigitColumn: View {
                 )
             }
         }
-        .onChange(of: value) { newValue in
-            animateTo(newValue)
-        }
     }
 
     private func getPreviousDigit(for position: Int) -> Int {
@@ -140,12 +183,6 @@ struct RollingDigitColumn: View {
             return previousDigits[position]
         }
         return 0
-    }
-
-    private func animateTo(_ newValue: Int) {
-        withAnimation(.easeInOut(duration: 0.3)) {
-            animatedValue = newValue
-        }
     }
 }
 
@@ -161,7 +198,6 @@ struct RollingDigit: View {
     @Environment(\.font) var font: Font?
 
     var body: some View {
-
         ZStack {
             // Old digit (slides up and fades out)
             Text("\(previousDigit)")
@@ -187,12 +223,6 @@ struct RollingDigit: View {
         digitHeight * 0.6
     }
 
-    private var opacity: CGFloat {
-        // Fade out as old digit moves up
-        let progress = abs(oldDigitOffset) / digitHeight
-        return max(0, 1 - progress)
-    }
-
     private func rollTo() {
         // Reset positions
         newDigitOffset = digitHeight
@@ -200,9 +230,149 @@ struct RollingDigit: View {
 
         // Animate both digits simultaneously
         withAnimation(.easeOut(duration: 0.2)) {
-            newDigitOffset = 0  // New digit moves up to center
-            oldDigitOffset = -digitHeight  // Old digit moves up and out
+            newDigitOffset = 0
+            oldDigitOffset = -digitHeight
         }
+    }
+}
+
+// MARK: - Flip Digit Column
+
+/// A single digit column that animates with 3D flip effect
+struct FlipDigitColumn: View {
+    let value: Int
+    let previousValue: Int
+    let digitCount: Int
+    let digitColumnHeight: CGFloat
+
+    var body: some View {
+        HStack(spacing: 0) {
+            ForEach(Array(String(format: "%0\(digitCount)d", value).enumerated()), id: \.offset) { index, digit in
+                FlipDigit(
+                    digit: Int(String(digit)) ?? 0,
+                    previousDigit: getPreviousDigit(for: index),
+                    digitHeight: digitColumnHeight
+                )
+            }
+        }
+    }
+
+    private func getPreviousDigit(for position: Int) -> Int {
+        let previousString = String(format: "%0\(digitCount)d", previousValue)
+        let previousDigits = Array(previousString).compactMap { Int(String($0)) }
+        if position < previousDigits.count {
+            return previousDigits[position]
+        }
+        return 0
+    }
+}
+
+/// A single digit with 3D page flip animation
+struct FlipDigit: View {
+    let digit: Int
+    let previousDigit: Int
+    let digitHeight: CGFloat
+
+    @State private var flipAngle: Double = 0
+    @State private var flipAngle2: Double = 90
+
+    @Environment(\.font) var font: Font?
+
+    var body: some View {
+        let halfHeight = digitHeight / 2
+        let actualFont = font ?? .system(size: 60, weight: .bold, design: .monospaced)
+
+        return ZStack {
+            VStack(spacing: 0) {
+                Text("\(previousDigit)")
+                    .font(actualFont)
+                    .frame(width: fontSize, height: digitHeight)
+                    .offset(y: halfHeight / 2)
+                    .frame(width: fontSize, height: halfHeight)
+                    .clipped()
+                    .background(Color.white)
+                Text("\(digit)")
+                    .font(actualFont)
+                    .frame(width: fontSize, height: digitHeight)
+                    .offset(y: -halfHeight / 2)
+                    .frame(width: fontSize, height: halfHeight)
+                    .clipped()
+                    .background(Color.white)
+
+            }
+            .background(Color.white)
+
+            VStack(spacing: 0) {
+                Text("\(digit)")
+                    .font(actualFont)
+                    .frame(width: fontSize, height: digitHeight)
+                    .offset(y: halfHeight / 2)
+                    .background(Color.white)
+                    .frame(width: fontSize, height: halfHeight)
+                    .clipped()
+                    .rotation3DEffect(
+                        .degrees(flipAngle2),
+                        axis: (x: -1, y: 0, z: 0),
+                        anchor: .bottom,  // 绕底部轴心翻转
+                        anchorZ: 0,
+                        perspective: 0
+                    )
+
+                Text("\(previousDigit)")
+                    .font(actualFont)
+                    .frame(width: fontSize, height: digitHeight)
+                    .offset(y: -halfHeight / 2)
+                    .background(Color.white)
+                    .frame(width: fontSize, height: halfHeight)
+                    .clipped()
+                    .rotation3DEffect(
+                        .degrees(flipAngle),
+                        axis: (x: 1, y: 0, z: 0),
+                        anchor: .top,  // 绕顶部轴心翻转
+                        anchorZ: 0,
+                        perspective: 0
+                    )
+            }
+            .frame(width: fontSize, height: digitHeight)
+        }
+        .frame(width: fontSize, height: digitHeight)
+        .onChange(of: digit) { _ in
+            performFlip()
+        }
+    }
+
+    private var fontSize: CGFloat {
+        digitHeight * 0.6
+    }
+
+    private func performFlip() {
+        flipAngle = 0
+        flipAngle2 = 90
+        withAnimation(.linear(duration: 0.12)) {
+            flipAngle = 90
+        }
+        withAnimation(.linear(duration: 0.12).delay(0.12)) {
+            flipAngle2 = 0
+        }
+    }
+}
+// 定义上半部分的形状
+struct TopHalfShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        // 矩形范围：从顶部开始，高度为总高度的一半
+        path.addRect(CGRect(x: 0, y: 0, width: rect.width, height: rect.height / 2))
+        return path
+    }
+}
+
+// 定义下半部分的形状
+struct BottomHalfShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        // 矩形范围：从中间开始，高度为剩下的另一半
+        path.addRect(CGRect(x: 0, y: rect.height / 2, width: rect.width, height: rect.height / 2))
+        return path
     }
 }
 
@@ -210,6 +380,7 @@ struct RollingDigit: View {
     VStack(spacing: 30) {
         DigitalClockView()
             .foregroundColor(.red)
+            .digitalClockAnimationType(.flip)
 
         DigitalClockView()
             .font(.system(size: 80, weight: .bold, design: .monospaced))

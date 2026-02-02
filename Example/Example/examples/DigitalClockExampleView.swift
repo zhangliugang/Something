@@ -14,6 +14,7 @@ struct DigitalClockExampleView: View {
     @State private var foregroundColor: Color = .primary
     @State private var showBackground: Bool = false
     @State private var backgroundColor: Color = .clear
+    @State private var animationType: DigitalClockAnimationType = .rolling
 
     var body: some View {
         ScrollView {
@@ -50,6 +51,7 @@ struct DigitalClockExampleView: View {
         DigitalClockView()
             .foregroundColor(foregroundColor)
             .font(.system(size: fontSize, weight: .bold, design: .serif))
+            .digitalClockAnimationType(animationType)
             .frame(height: fontSize * 1.3)
             .padding(showBackground ? 20 : 0)
             .background(showBackground ? backgroundColor : Color.clear)
@@ -79,11 +81,25 @@ struct DigitalClockExampleView: View {
 
     private var configurationContent: some View {
         VStack(alignment: .leading, spacing: 15) {
+            animationTypePicker
             colorPicker
             backgroundToggle
             if showBackground {
                 backgroundColorPicker
             }
+        }
+    }
+
+    private var animationTypePicker: some View {
+        HStack {
+            Text("Animation:")
+            Spacer()
+            Picker("Animation", selection: $animationType) {
+                Text("Rolling").tag(DigitalClockAnimationType.rolling)
+                Text("Flip").tag(DigitalClockAnimationType.flip)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 200)
         }
     }
 
@@ -123,6 +139,7 @@ struct DigitalClockExampleView: View {
             Text("""
             DigitalClockView()
                 .font(.system(size: 60, weight: .bold, design: .monospaced))
+                .animationType(.flip)
                 .foregroundColor(.primary)
                 .background(Color.gray.opacity(0.1))
                 .cornerRadius(12)
