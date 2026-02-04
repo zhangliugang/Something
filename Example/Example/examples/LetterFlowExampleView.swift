@@ -14,7 +14,8 @@ struct LetterFlowExampleView: View {
                         .font(.headline)
                         .foregroundColor(.secondary)
 
-                    LetterFlow(text: $word1)
+                    LetterFlowViewRepresentable(text: $word1)
+                        .frame(height: 80)
                         .font(.system(size: 48, weight: .bold, design: .rounded))
                         .padding()
                         .background(Color.gray.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
@@ -28,12 +29,13 @@ struct LetterFlowExampleView: View {
                         .font(.headline)
                         .foregroundColor(.secondary)
 
-                    LetterFlow(
+                    LetterFlowViewRepresentable(
                         text: $word2,
                         font: .system(size: 40, weight: .heavy, design: .monospaced),
                         foregroundColor: .purple,
                         activeColor: .orange
                     )
+                    .frame(height: 80)
                     .padding()
                     .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
                 }
@@ -46,12 +48,13 @@ struct LetterFlowExampleView: View {
                         .font(.headline)
                         .foregroundColor(.secondary)
 
-                    LetterFlow(
+                    LetterFlowViewRepresentable(
                         text: $word3,
                         font: .system(size: 50),
                         foregroundColor: .primary,
                         activeColor: .pink
                     )
+                    .frame(height: 80)
                     .padding()
                     .background(Color.pink.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
                 }
