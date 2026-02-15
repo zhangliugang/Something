@@ -8,59 +8,52 @@ struct LetterFlowExampleView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 40) {
                 VStack(spacing: 12) {
                     Text("Drag letters to reorder")
                         .font(.headline)
                         .foregroundColor(.secondary)
 
-                    LetterFlowViewRepresentable(text: $word1)
-                        .frame(height: 80)
-                        .font(.system(size: 48, weight: .bold, design: .rounded))
-                        .padding()
-                        .background(Color.gray.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+                    ZStack {
+//                        Image(uiImage: UIImage(contentsOfFile: Bundle.main.path(forResource: "img", ofType: "avif")!)!)
+//                            .resizable()
+//                            .scaledToFill()
+
+
+//                        LetterFlowViewRepresentable(text: $word1)
+//                            .frame(height: 160)
+//                            .font(.system(size: 48, weight: .bold, design: .rounded))
+                        Image(uiImage: UIImage(contentsOfFile: Bundle.main.path(forResource: "img", ofType: "avif")!)!)
+                            .resizable()
+                            .scaledToFill()
+//                            .blur(radius: 10)
+//                            .mask {
+//                                Text("Hello, World!")
+//                                    .font(.largeTitle).bold()
+//
+////                                .layerEffect(ShaderLibrary.gooeyDistort(
+////                                    .float2(400, 400), // 视图大小
+////                                    .float(2) // 传入时间实现动态扭曲
+////                                ), maxSampleOffset: CGSizeZero)
+//                            }
+                        LetterFlow(text: $word1)
+                            .font(.largeTitle)
+//                        Text("Hello, World!")
+//                            .font(.title)
+//                            .padding()
+//                            .glassEffect(.clear, in: RoundedRectangle())
+
+
+
+                    }
                 }
-                .padding()
-
-                Divider()
-
-                VStack(spacing: 12) {
-                    Text("Custom Colors")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-
-                    LetterFlowViewRepresentable(
-                        text: $word2,
-                        font: .system(size: 40, weight: .heavy, design: .monospaced),
-                        foregroundColor: .purple,
-                        activeColor: .orange
-                    )
-                    .frame(height: 80)
+                Text("Hello, World!")
+                    .font(.largeTitle)
+                    .foregroundStyle(.yellow)
                     .padding()
-                    .background(Color.purple.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-                }
-                .padding()
-
+                Image(systemName: "figure.run.circle.fill")
+                    .font(.system(size: 300))
+                    .colorEffect(ShaderLibrary.checkerboard(.float(8), .color(.blue)))
                 Divider()
-
-                VStack(spacing: 12) {
-                    Text("Emojis")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-
-                    LetterFlowViewRepresentable(
-                        text: $word3,
-                        font: .system(size: 50),
-                        foregroundColor: .primary,
-                        activeColor: .pink
-                    )
-                    .frame(height: 80)
-                    .padding()
-                    .background(Color.pink.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-                }
-                .padding()
-            }
-            .padding()
         }
         .navigationTitle("Letter Flow")
         .navigationBarTitleDisplayMode(.inline)

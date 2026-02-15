@@ -9,9 +9,11 @@ import Testing
 @testable import Example
 
 struct ExampleTests {
+    var offset = [-120, -60, 0, 60, 120]
+    var delta = [0, 0, 0, 0, 0]
 
     @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+        
     }
 
 }
