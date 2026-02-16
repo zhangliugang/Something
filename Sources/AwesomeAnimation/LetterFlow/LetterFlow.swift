@@ -7,7 +7,6 @@ public struct LetterFlow: View {
     @State private var cellWidth: Double = 10
     @State private var leadingSpace: Double = 0
 
-//    @State private var draggedIndex: Int?
     @State private var characters: [Character] = []
     @State private var initOffsets: [Double] = []
     @State private var offsets: [Double] = []
@@ -23,18 +22,11 @@ public struct LetterFlow: View {
 
     public init(text: Binding<String>) {
         self._text = text
-//        let characters = Array(text.wrappedValue)
-//
-//        initOffsets = Self.layoutAllLabels(characters.count, 60)
-
-//        self.characters = characters
-//        self.offsets = initOffsets
-//        self.$offsets = initOffsets
     }
 
     public var body: some View {
         ZStack {
-            GlassEffectContainer(spacing: 40) {
+            GlassEffectContainer(spacing: cellWidth / 2) {
                 ZStack {
                     ForEach(characters.indices, id: \.self) { index in
                         Capsule(style: .continuous)
@@ -48,66 +40,71 @@ public struct LetterFlow: View {
             }
             ForEach(characters.indices, id: \.self) { index in
                 Text(String(characters[index]))
+                    .font(font ?? .largeTitle)
                     .foregroundStyle(Color.white)
                     .frame(width: cellWidth, height: cellWidth)
-                    .border(Color.red)
                     .offset(x: dragOffset(for: index))
             }
         }
         .frame(maxWidth: .infinity)
-        .border(Color.purple)
         .gesture(dragGesture())
         .overlay {
             GeometryReader { proxy in
                 Color.clear
                     .task(id: proxy.size) {
                         self.size = proxy.size
+                        self.cellWidth = (font ?? .largeTitle).resolve(in: context).pointSize * 1.5
+                        self.leadingSpace = (self.size.width - cellWidth * Double(text.count)) / 2
+                        self.initOffsets = initOffset(text.count, cellWidth)
+                        self.characters = Array(text)
+                        self.offsets = initOffsets
                     }
             }
         }
-        .onAppear(perform: {
-            self.cellWidth = Font.largeTitle.resolve(in: context).pointSize * 1.5
-            self.leadingSpace = (self.size.width - cellWidth * Double(text.count)) / 2
-            self.initOffsets = initOffset(text.count, cellWidth)
-            self.characters = Array(text)
-            self.offsets = initOffsets
-        })
         .animation(.spring(response: 0.3, dampingFraction: 0.7), value: dragDelta)
     }
 
     private func dragOffset(for index: Int) -> CGFloat {
-        guard index >= 0 && index < offsets.count && index < dragDelta.count else {
+        guard index >= 0 && index < offsets.count else {
             return 0
         }
-        return offsets[index] + dragDelta[index]
+        let baseOffset = offsets[index]
+        if index < dragDelta.count {
+            return baseOffset + dragDelta[index]
+        }
+        return baseOffset
+    }
+
+    private func dragIndex(_ location: Double) -> Int? {
+        let dragged = Int((location - leadingSpace) / cellWidth)
+
+        guard dragged >= 0, dragged < offsets.count else {
+            return nil
+        }
+        return offsets.firstIndex(of: initOffsets[dragged])
     }
 
     private func dragGesture() -> some Gesture {
         DragGesture()
             .updating($dragDelta, body: { value, state, _ in
-                let tx = value.translation.width
-                let dragged = Int((value.startLocation.x - leadingSpace) / cellWidth)
-                state = onMove(dragged, tx)
+                guard let index = dragIndex(value.startLocation.x) else {
+                    return
+                }
+                state = onMove(index, value.translation.width)
             })
             .onEnded { value in
-                let dragged = Int((value.startLocation.x - leadingSpace) / cellWidth)
-
-                guard let index = offsets.firstIndex(of: initOffsets[dragged]) else {
+                guard let index = dragIndex(value.startLocation.x) else {
                     return
                 }
 
-                let tx = value.translation.width
-                let dropThreshold = cellWidth / 2
+                let delta = onMove(index, value.translation.width)
 
-                var newIndex = max(min(Int((value.location.x - leadingSpace) / cellWidth), 4), 0)
-
-                let delta = onMove(dragged, value.translation.width)
-
-                for i in 0..<offsets.count {
-                    if i == index {
-                        offsets[i] = initOffsets[newIndex]
-                    } else {
-                        offsets[i] += delta[i]
+                for i in 0..<offsets.count where i != index {
+                    offsets[i] += delta[i]
+                }
+                for value in initOffsets {
+                    if !offsets.contains(value) {
+                        offsets[index] = value
                     }
                 }
             }
@@ -121,14 +118,8 @@ public struct LetterFlow: View {
         return offset
     }
 
-    private func onMove(_ dragged: Int, _ translation: Double) -> [Double] {
-
+    private func onMove(_ index: Int, _ translation: Double) -> [Double] {
         var res = Array<Double>(repeating: 0, count: offsets.count)
-//        let cellWidth = fontSize
-        guard let index = offsets.firstIndex(of: initOffsets[dragged]) else {
-            return res
-        }
-
         res[index] = translation
         let draggedOffset = offsets[index] + translation
         let step = Int((abs(translation) + cellWidth * 0.5) / cellWidth)
@@ -157,6 +148,7 @@ struct LetterFlow_Previews: PreviewProvider {
                 .padding()
 
             LetterFlow(text: .constant("SwiftU"))
+                .font(.headline)
                 .padding()
         }
         .background(Color.indigo)

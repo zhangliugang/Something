@@ -17,7 +17,7 @@ public struct RippleEffectModifier<T: Equatable>: ViewModifier {
     var decay: Double
     var speed: Double
 
-    public init(at origin: CGPoint, trigger: T, amplitude: Double = 12, frequency: Double = 15, decay: Double = 8, speed: Double = 120) {
+    public init(at origin: CGPoint, trigger: T, amplitude: Double = 12, frequency: Double = 15, decay: Double = 8, speed: Double = 1200) {
         self.origin = origin
         self.trigger = trigger
         self.amplitude = amplitude
