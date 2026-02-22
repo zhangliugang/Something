@@ -2,25 +2,25 @@
 import PackageDescription
 
 let package = Package(
-    name: "AwesomeAnimation",
+    name: "Something",
     platforms: [
         .iOS(.v17)
     ],
     products: [
         .library(
-            name: "AwesomeAnimation",
-            targets: ["AwesomeAnimation"]
+            name: "Something",
+            targets: ["Something"]
         ),
     ],
     targets: [
         .target(
-            name: "AwesomeAnimation",
+            name: "Something",
             dependencies: ["Shared"]
         ),
         .target(name: "Shared", publicHeadersPath: "."),
         .testTarget(
-            name: "AwesomeAnimationTests",
-            dependencies: ["AwesomeAnimation"]
+            name: "SomethingTests",
+            dependencies: ["Something"]
         )
     ]
 )

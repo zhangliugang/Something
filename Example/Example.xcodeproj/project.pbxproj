@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		3A15BD3E2F2201C50009222B /* AwesomeAnimation in Frameworks */ = {isa = PBXBuildFile; productRef = 3A15BD3D2F2201C50009222B /* AwesomeAnimation */; };
+		3A1041D02F4AD4A90031861D /* Something in Frameworks */ = {isa = PBXBuildFile; productRef = 3A1041CF2F4AD4A90031861D /* Something */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,7 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				3A15BD3E2F2201C50009222B /* AwesomeAnimation in Frameworks */,
+				3A1041D02F4AD4A90031861D /* Something in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +117,7 @@
 			);
 			name = Example;
 			packageProductDependencies = (
-				3A15BD3D2F2201C50009222B /* AwesomeAnimation */,
+				3A1041CF2F4AD4A90031861D /* Something */,
 			);
 			productName = Example;
 			productReference = 3A15BD122F2201500009222B /* Example.app */;
@@ -202,7 +202,7 @@
 			mainGroup = 3A15BD092F2201500009222B;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				3A15BD3C2F2201C50009222B /* XCLocalSwiftPackageReference "../../AwesomeAnimation" */,
+				3A1041CE2F4AD4A90031861D /* XCLocalSwiftPackageReference "../../Something" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3A15BD132F2201500009222B /* Products */;
@@ -601,16 +601,16 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		3A15BD3C2F2201C50009222B /* XCLocalSwiftPackageReference "../../AwesomeAnimation" */ = {
+		3A1041CE2F4AD4A90031861D /* XCLocalSwiftPackageReference "../../Something" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = ../../AwesomeAnimation;
+			relativePath = ../../Something;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		3A15BD3D2F2201C50009222B /* AwesomeAnimation */ = {
+		3A1041CF2F4AD4A90031861D /* Something */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = AwesomeAnimation;
+			productName = Something;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

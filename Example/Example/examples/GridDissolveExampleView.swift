@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import AwesomeAnimation
+import Something
 
 extension GridDissolveDirection: @retroactive Identifiable, @retroactive CustomStringConvertible {
     public var description: String {

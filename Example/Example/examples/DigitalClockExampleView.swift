@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import AwesomeAnimation
+import Something
 
 /// Example view demonstrating Digital Clock animation
 struct DigitalClockExampleView: View {

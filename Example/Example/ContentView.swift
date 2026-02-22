@@ -6,7 +6,7 @@
 //
 
 import SwiftUI
-import AwesomeAnimation
+import Something
 
 // MARK: - Example Data
 

@@ -1,5 +1,5 @@
 import SwiftUI
-import AwesomeAnimation
+import Something
 
 struct LetterFlowExampleView: View {
     @State private var word1 = "HELLO"
