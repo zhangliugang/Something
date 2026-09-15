@@ -137,21 +137,16 @@ public struct LetterFlow: View {
     }
 }
 
+@available(iOS 26.0, macOS 26.0, tvOS 26.0, watchOS 26.0, *)
+#Preview {
+    VStack(spacing: 40) {
+        LetterFlow(text: .constant("HELLO"))
+            .font(.largeTitle)
+            .padding()
 
-// MARK: - Preview
-@available(iOS 26.0, *)
-struct LetterFlow_Previews: PreviewProvider {
-    static var previews: some View {
-        VStack(spacing: 40) {
-            LetterFlow(text: .constant("HELLO"))
-                .font(.largeTitle)
-                .padding()
-
-            LetterFlow(text: .constant("SwiftU"))
-                .font(.headline)
-                .padding()
-        }
-        .background(Color.indigo)
-//        .previewInterfaceOrientation(.landscapeLeft)
+        LetterFlow(text: .constant("SwiftU"))
+            .font(.headline)
+            .padding()
     }
+    .background(Color.indigo)
 }

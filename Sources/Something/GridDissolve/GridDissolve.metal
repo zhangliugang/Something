@@ -1,5 +1,7 @@
 #include <metal_stdlib>
 #include "../../Shared/Shared.h"
+#include <SwiftUI/SwiftUI_Metal.h>
+
 using namespace metal;
 
 struct VertexOut {
@@ -132,15 +134,11 @@ fragment float4 fragmentShader(VertexOut in [[stage_in]],
     float cellMinV = cellRow / numRows;
     float cellMaxV = (cellRow + 1.0) / numRows;
 
-    // Cell center
-    float cellCenterU = (cellMinU + cellMaxU) * 0.5;
-    float cellCenterV = (cellMinV + cellMaxV) * 0.5;
-
     // Cell animation duration
     float cellAnimDuration = u.cellDuration;
 
     // Calculate max start time
-    float maxStartTime = u.duration - cellAnimDuration;
+    float maxStartTime = max(0.0, u.duration - cellAnimDuration);
 
     // Calculate cell start time based on direction
     float startTime = calculateStartTime(u.direction, col, row, int(numCols), int(numRows), maxStartTime, u.randomSeed);
@@ -186,4 +184,90 @@ fragment float4 fragmentShader(VertexOut in [[stage_in]],
     float sampleV = cellMinV + scaledLocalV * (cellMaxV - cellMinV);
 
     return inputTexture.sample(s, float2(sampleU, sampleV));
+}
+
+[[ stitchable ]] half4 Dissolve
+(
+ float2 position,
+ SwiftUI::Layer layer,
+ float2 size,
+ float2 gridSize, // Cell size in SwiftUI layer coordinates
+ float time,           // Elapsed animation time in seconds
+ float duration,       // Total animation duration in seconds
+ float cellAnimDuration,   // Per-cell animation duration in seconds
+ float direction,     // Animation direction
+ float randomSeed     // Seed for random ordering
+ ) {
+    float texW = size.x;
+    float texH = size.y;
+    float cellW = gridSize.x;
+    float cellH = gridSize.y;
+
+    float numCols = texW / cellW;
+    float numRows = texH / cellH;
+
+    float2 uv = clamp(position / size, float2(0.0), float2(0.999999));
+
+    // Get cell coordinates
+    float cellCol = floor(uv.x * numCols);
+    float cellRow = floor(uv.y * numRows);
+
+    // Column and row indices
+    int col = int(cellCol);
+    int row = int(cellRow);
+
+    // Cell bounds in UV space
+    float cellMinU = cellCol / numCols;
+    float cellMaxU = (cellCol + 1.0) / numCols;
+    float cellMinV = cellRow / numRows;
+    float cellMaxV = (cellRow + 1.0) / numRows;
+
+    // Calculate max start time
+    float maxStartTime = max(0.0, duration - cellAnimDuration);
+
+    // Calculate cell start time based on direction
+    float startTime = calculateStartTime(int(direction), col, row, int(numCols), int(numRows), maxStartTime, randomSeed);
+
+    // Cell end time
+    float endTime = startTime + cellAnimDuration;
+
+    // If animation hasn't reached this cell yet, show original
+    if (time < startTime) {
+        return layer.sample(position);
+    }
+
+    // If this cell has completed animation, return transparent
+    if (time >= endTime) {
+        return half4(0.0, 0.0, 0.0, 0.0);
+    }
+
+    // Animation progress (0 to 1)
+    float progress = (time - startTime) / cellAnimDuration;
+    progress = clamp(progress, 0.0, 1.0);
+
+    // Scale from 1.0 to 0.0 (cell shrinks from center)
+    float scale = 1.0 - progress;
+
+    // Prevent division by zero
+    scale = max(scale, 0.01);
+
+    // Calculate local UV within cell (0 to 1)
+    float localU = (uv.x - cellMinU) / (cellMaxU - cellMinU);
+    float localV = (uv.y - cellMinV) / (cellMaxV - cellMinV);
+
+    // Scale from center
+    float scaledLocalU = (localU - 0.5) / scale + 0.5;
+    float scaledLocalV = (localV - 0.5) / scale + 0.5;
+
+    // If after scaling, the pixel is outside the cell bounds, return transparent
+    if (scaledLocalU < 0.0 || scaledLocalU > 1.0 || scaledLocalV < 0.0 || scaledLocalV > 1.0) {
+        return half4(0.0, 0.0, 0.0, 0.0);
+    }
+
+    // Convert back to texture UV
+    float sampleU = cellMinU + scaledLocalU * (cellMaxU - cellMinU);
+    float sampleV = cellMinV + scaledLocalV * (cellMaxV - cellMinV);
+
+    float2 samplePosition = clamp(float2(sampleU, sampleV) * size, float2(0.0), size);
+    return layer.sample(samplePosition);
 }

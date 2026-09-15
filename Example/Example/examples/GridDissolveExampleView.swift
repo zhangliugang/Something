@@ -33,7 +33,7 @@ struct GridDissolveExampleView: View {
     @State private var isPresented = true
     @State private var showingAnimation = false
     @State private var selectedDirection: GridDissolveDirection = .leftToRight
-    @State private var gridSize: Int = 30
+    @State private var gridSize: Int = 20
     @State private var animationDuration: Double = 3
 
     var body: some View {
@@ -43,23 +43,16 @@ struct GridDissolveExampleView: View {
                 GroupBox("Preview") {
                     VStack {
                         ZStack {
-                            if isPresented {
-                                MetalGridViewRepresentable(
-                                    isShowing: $showingAnimation,
-                                    direction: selectedDirection,
-                                    gridSize: gridSize,
-                                    duration: animationDuration
-                                ) {
-                                    Image(uiImage: UIImage(contentsOfFile: Bundle.main.path(forResource: "img", ofType: "avif")!)!)
-                                        .resizable()
-                                        .scaledToFill()
-                                } onDismissed: {
-                                    showingAnimation = false
-                                    isPresented = false
-                                }
-                                .frame(height: 200)
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            GridDissolveView(
+                                gridSize: CGSize(width: gridSize, height: gridSize),
+                                duration: animationDuration,
+                                cell_Duration: 1,
+                                direction: selectedDirection) {
+                                Image(uiImage: UIImage(contentsOfFile: Bundle.main.path(forResource: "img", ofType: "avif")!)!)
+                                    .resizable()
+                                    .scaledToFill()
                             }
+                                .frame(height: 200)
                         }
                         .frame(height: 200)
                         HStack {
@@ -116,29 +109,6 @@ struct GridDissolveExampleView: View {
                     }
                     .padding()
                 }
-
-                // Code Example Section
-                GroupBox("Code Example") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Usage")
-                            .font(.headline)
-
-                        Text("""
-                        let gridView = MetalGridView()
-                        gridView.gridColumns = 10
-                        gridView.gridRows = 10
-                        gridView.dissolveDirection = .centerOut
-                        gridView.dismiss(animated: true) {
-                            print("Animation complete")
-                        }
-                        """)
-                        .font(.system(.caption, design: .monospaced))
-                        .padding()
-                        .background(Color.gray.opacity(0.1))
-                        .cornerRadius(8)
-                    }
-                    .padding()
-                }
             }
             .padding()
         }
@@ -146,87 +116,6 @@ struct GridDissolveExampleView: View {
     }
 }
 
-// MARK: - Metal Grid View Representable
-
-import SwiftUI
-import UIKit
-
-struct MetalGridViewRepresentable<Content: View>: UIViewRepresentable {
-    @Binding var isShowing: Bool
-    let direction: GridDissolveDirection
-    let gridSize: Int
-    let duration: Double
-    @ViewBuilder let content: () -> Content
-    let onDismissed: () -> Void
-
-    init(
-        isShowing: Binding<Bool>,
-        direction: GridDissolveDirection,
-        gridSize: Int,
-        duration: Double,
-        @ViewBuilder content: @escaping () -> Content,
-        onDismissed: @escaping () -> Void
-    ) {
-        self._isShowing = isShowing
-        self.direction = direction
-        self.gridSize = gridSize
-        self.duration = duration
-        self.content = content
-        self.onDismissed = onDismissed
-    }
-
-    func makeUIView(context: Context) -> MetalGridView {
-        let view = MetalGridView()
-        view.cellPixelSize = Double(gridSize)
-        view.dissolveDirection = direction
-        view.animationDuration = duration
-
-        // Add subview from content
-        let hostingController = UIHostingController(rootView: content())
-        hostingController.view.translatesAutoresizingMaskIntoConstraints = false
-        hostingController.view.backgroundColor = .clear
-        view.contentView.addSubview(hostingController.view)
-
-        NSLayoutConstraint.activate([
-            hostingController.view.topAnchor.constraint(equalTo: view.topAnchor),
-            hostingController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hostingController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            hostingController.view.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-
-        return view
-    }
-
-    func updateUIView(_ uiView: MetalGridView, context: Context) {
-        uiView.cellPixelSize = Double(gridSize)
-        uiView.dissolveDirection = direction
-        uiView.animationDuration = duration
-
-        if isShowing {
-            uiView.dismiss(animated: true) {
-                onDismissed()
-            }
-        }
-    }
-}
-
-// Convenience initializer without content
-extension MetalGridViewRepresentable {
-    init(
-        isShowing: Binding<Bool>,
-        direction: GridDissolveDirection,
-        gridSize: Int,
-        duration: Double,
-        onDismissed: @escaping () -> Void
-    ) where Content == EmptyView {
-        self._isShowing = isShowing
-        self.direction = direction
-        self.gridSize = gridSize
-        self.duration = duration
-        self.content = { EmptyView() }
-        self.onDismissed = onDismissed
-    }
-}
 
 #Preview {
     GridDissolveExampleView()

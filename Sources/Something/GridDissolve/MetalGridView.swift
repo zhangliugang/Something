@@ -2,6 +2,7 @@ import Metal
 import MetalKit
 import UIKit
 import Shared
+import SwiftUI
 
 /// Animation direction for the grid dissolve effect
 public enum GridDissolveDirection: CaseIterable {
@@ -31,6 +32,64 @@ public enum GridDissolveDirection: CaseIterable {
         case .edgeIn: return 9
         case .random: return 10
         }
+    }
+}
+
+public struct GridDissolveView<Content>: View where Content: View {
+    let gridSize: CGSize
+    let duration: Double
+    let cell_Duration: Double
+    let direction: GridDissolveDirection
+    let content: Content
+    @State private var animationStart = Date()
+    @State private var randomSeed = Float.random(in: 0...1)
+
+    public init(gridSize: CGSize, duration: Double, cell_Duration: Double, direction: GridDissolveDirection, @ViewBuilder content: () -> Content) {
+        self.gridSize = gridSize
+        self.duration = duration
+        self.cell_Duration = cell_Duration
+        self.direction = direction
+        self.content = content()
+    }
+
+    public var body: some View {
+        TimelineView(.animation) { context in
+            let elapsed = context.date.timeIntervalSince(animationStart).truncatingRemainder(dividingBy: duration)
+
+            content
+                .visualEffect { content, geometry in
+                    let dissolveShader: Shader = Shader(
+                        function: ShaderFunction(library: .bundle(.module), name: "Dissolve"),
+                        arguments: [
+                            .float2(geometry.size),
+                            .float2(gridSize),
+                            .float(Float(elapsed)),
+                            .float(Float(duration)),
+                            .float(Float(cell_Duration)),
+                            .float(Float(direction.rawValue)),
+                            .float(randomSeed)
+                        ]
+                    )
+                    return content.layerEffect(dissolveShader, maxSampleOffset: .zero, isEnabled: true)
+                }
+        }
+        .onChange(of: direction.rawValue) {
+            restartAnimation()
+        }
+        .onChange(of: gridSize) {
+            restartAnimation()
+        }
+        .onChange(of: duration) {
+            restartAnimation()
+        }
+        .onChange(of: cell_Duration) {
+            restartAnimation()
+        }
+    }
+
+    private func restartAnimation() {
+        animationStart = Date()
+        randomSeed = Float.random(in: 0...1)
     }
 }
 
@@ -286,5 +345,17 @@ public final class MetalGridView: UIView {
         completionHandler = nil
         metalLayer?.removeFromSuperlayer()
         contentView.isHidden = false
+    }
+}
+
+#Preview {
+    GridDissolveView(
+        gridSize: CGSize(width: 30, height: 30),
+        duration: 3,
+        cell_Duration: 0.5,
+        direction: .leftToRight) {
+            Rectangle()
+                .fill(Color.black)
+                .frame(width: 300, height: 300)
     }
 }

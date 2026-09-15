@@ -31,7 +31,11 @@ let animationExamples: [AnimationExample] = [
         category: ExampleCategory.swiftUI.rawValue
     ) {
         AnyView(LetterFlowExampleView())
-    }
+    },
+    AnimationExample(title: "Example", description: "", category: ExampleCategory.swiftUI.rawValue, preview: {AnyView(MetalExampleView())}),
+    AnimationExample(title: "Clock", description: "", category: "SwiftUI", preview: {
+        AnyView(ClockView())
+    })
 ]
 
 // MARK: - Main Content View
